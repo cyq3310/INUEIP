@@ -1,0 +1,43 @@
+# 依赖目录
+node_modules/
+vendor/
+
+# 构建产物
+dist/
+dist-ssr/
+*.local
+
+# 日志
+*.log
+
+# 本地环境变量与凭证
+.env
+.env.*
+!.env.example
+!.env.development
+tools/composer-home/
+tools/composer.phar
+
+# 运行时产物与用户上传内容
+backend/runtime/
+backend/public/uploads/*
+!backend/public/uploads/.htaccess
+
+# 调试截图 / 原型 / 自动化临时文件
+generated-images/
+prototype/
+login.yaml
+portal.png
+.playwright-cli/
+
+# 编辑器与系统文件
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

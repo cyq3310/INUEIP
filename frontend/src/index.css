@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 47% 96%;
+    --foreground: 211 32% 18%;
+    --card: 0 0% 100%;
+    --card-foreground: 211 32% 18%;
+  }
+
+  body {
+    @apply bg-page text-ink font-sans antialiased;
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
