@@ -19,12 +19,19 @@ class AiSkillSeeder extends Seeder
         $now = date('Y-m-d H:i:s');
 
         // 权限：AI Skill 管理（id 60 段，40 段已被 PortalThemeSeeder 占用）、Skill 分类（id 70 段）
+        // 80 段为后补的「员工自助类」接口权限（创建/解析压缩包/点赞/统计/分类查询），归入 AI Skill 菜单下
         $permissions = [
             ['id' => 60, 'parent_id' => 0, 'name' => 'AI Skill 管理', 'code' => 'ai-skill:manage-all', 'type' => 'menu', 'path' => '/admin/ai-skills', 'sort' => 6],
             ['id' => 61, 'parent_id' => 60, 'name' => 'Skill 全量查询', 'code' => 'ai-skill:list', 'type' => 'api', 'path' => 'GET /api/skills', 'sort' => 1],
             ['id' => 62, 'parent_id' => 60, 'name' => 'Skill 编辑', 'code' => 'ai-skill:update', 'type' => 'api', 'path' => 'PUT /api/skills/:id', 'sort' => 2],
             ['id' => 63, 'parent_id' => 60, 'name' => 'Skill 删除', 'code' => 'ai-skill:delete', 'type' => 'api', 'path' => 'DELETE /api/skills/:id', 'sort' => 3],
             ['id' => 64, 'parent_id' => 60, 'name' => 'Skill 上下架', 'code' => 'ai-skill:publish', 'type' => 'api', 'path' => 'POST /api/skills/:id/status', 'sort' => 4],
+            // 85-89 段：75-82 已被知识库(kb:*)占用，故自助类接口从 85 起
+            ['id' => 85, 'parent_id' => 60, 'name' => 'Skill 创建', 'code' => 'ai-skill:create', 'type' => 'api', 'path' => 'POST /api/skills', 'sort' => 5],
+            ['id' => 86, 'parent_id' => 60, 'name' => 'Skill 压缩包解析', 'code' => 'ai-skill:parse-zip', 'type' => 'api', 'path' => 'POST /api/skills/parse-zip', 'sort' => 6],
+            ['id' => 87, 'parent_id' => 60, 'name' => 'Skill 点赞', 'code' => 'ai-skill:like', 'type' => 'api', 'path' => 'POST /api/skills/:id/like', 'sort' => 7],
+            ['id' => 88, 'parent_id' => 60, 'name' => 'Skill 统计查询', 'code' => 'ai-skill:stats', 'type' => 'api', 'path' => 'GET /api/skills/stats', 'sort' => 8],
+            ['id' => 89, 'parent_id' => 60, 'name' => 'Skill 分类查询（门户）', 'code' => 'ai-skill:categories', 'type' => 'api', 'path' => 'GET /api/skills/categories', 'sort' => 9],
 
             ['id' => 70, 'parent_id' => 0, 'name' => 'Skill 分类', 'code' => 'ai-skill:category', 'type' => 'menu', 'path' => '/admin/ai-skill-categories', 'sort' => 7],
             ['id' => 71, 'parent_id' => 70, 'name' => '分类查询', 'code' => 'skill-category:list', 'type' => 'api', 'path' => 'GET /api/admin/ai-skill-categories', 'sort' => 1],
@@ -32,6 +39,10 @@ class AiSkillSeeder extends Seeder
             ['id' => 73, 'parent_id' => 70, 'name' => '分类编辑', 'code' => 'skill-category:update', 'type' => 'api', 'path' => 'PUT /api/admin/ai-skill-categories/:id', 'sort' => 3],
             ['id' => 74, 'parent_id' => 70, 'name' => '分类删除', 'code' => 'skill-category:delete', 'type' => 'api', 'path' => 'DELETE /api/admin/ai-skill-categories/:id', 'sort' => 4],
         ];
+        // 平台归属：AI Skill 功能开发在 EIP 代码库内，故归入 EIP 平台（独立产品才独占页签）
+        $permissions = array_map(function (array $row) {
+            return $row + ['platform' => 'eip'];
+        }, $permissions);
 
         $newPermissions = [];
         foreach ($permissions as $permission) {
@@ -59,6 +70,15 @@ class AiSkillSeeder extends Seeder
         if ($newRolePermissions) {
             $this->table('role_permission')->insert($newRolePermissions)->saveData();
         }
+
+        // 员工自助类接口权限预授予普通用户角色，避免路由绑定权限后阻断员工自助创建/点赞/浏览
+        $this->grantToRole(2, [
+            'ai-skill:create',
+            'ai-skill:parse-zip',
+            'ai-skill:like',
+            'ai-skill:stats',
+            'ai-skill:categories',
+        ]);
 
         // 分类：1-7 职能，11-15 类型
         $categories = [
@@ -133,6 +153,28 @@ class AiSkillSeeder extends Seeder
     }
 
     /** 生成结构化的提示词正文，等价于 SKILL.md 内容 */
+    /** 幂等：按权限 code 为指定角色补充授权（角色不存在或已授权则跳过） */
+    private function grantToRole(int $roleId, array $codes): void
+    {
+        if (!Db::name('role')->where('id', $roleId)->find()) {
+            return;
+        }
+
+        $permissionIds = Db::name('permission')->whereIn('code', $codes)->column('id');
+        $assignedIds   = array_map('intval', Db::name('role_permission')->where('role_id', $roleId)->column('permission_id'));
+
+        $rows = [];
+        foreach ($permissionIds as $permissionId) {
+            if (in_array((int) $permissionId, $assignedIds, true)) {
+                continue;
+            }
+            $rows[] = ['role_id' => $roleId, 'permission_id' => (int) $permissionId];
+        }
+        if ($rows) {
+            $this->table('role_permission')->insert($rows)->saveData();
+        }
+    }
+
     private function buildContent(string $name, string $summary): string
     {
         return "# {$name}\n\n"

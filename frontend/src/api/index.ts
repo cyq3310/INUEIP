@@ -19,6 +19,7 @@ import type {
   AppLinkItem,
   PageResult,
   PermissionNode,
+  PermissionPlatform,
   PortalThemeConfig,
   PortalThemeItem,
   RoleItem,
@@ -41,6 +42,11 @@ export const authApi = {
     request.post('/auth/login', { username, password }) as Promise<{ data: { token: string; user: UserProfile } }>,
   logout: () => request.post('/auth/logout'),
   profile: () => request.get('/auth/profile') as Promise<{ data: UserProfile }>,
+  changePassword: (oldPassword: string, newPassword: string) =>
+    request.post('/auth/change-password', {
+      old_password: oldPassword,
+      new_password: newPassword,
+    }) as Promise<{ data: null }>,
 }
 
 // ---------- 门户 ----------
@@ -97,7 +103,7 @@ export const roleApi = {
   remove: (id: number) => request.delete(`/admin/roles/${id}`),
   assignPermissions: (id: number, permissionIds: number[]) =>
     request.post(`/admin/roles/${id}/permissions`, { permission_ids: permissionIds }),
-  permissionTree: () => request.get('/admin/permissions') as Promise<{ data: PermissionNode[] }>,
+  permissionTree: () => request.get('/admin/permissions') as Promise<{ data: PermissionPlatform[] }>,
 }
 
 // ---------- 应用链接 ----------

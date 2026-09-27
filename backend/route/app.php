@@ -14,6 +14,8 @@ Route::get('api/config', 'Config/publicConfig');
 Route::group('api', function () {
     Route::post('auth/logout', 'Auth/logout');
     Route::get('auth/profile', 'Auth/profile');
+    // 自助修改密码：只需登录态，不绑定权限码
+    Route::post('auth/change-password', 'Auth/changePassword');
 
     // 门户首页聚合
     Route::get('portal/summary', 'Portal/summary');
@@ -24,15 +26,16 @@ Route::group('api', function () {
 
     // AI Skill 平台：广场 / 我的 Skill / 后台全量管理共用同一组接口，
     // 可见范围与操作权限由 Skill 控制器按「作者本人 + ai-skill:manage-all」判定
+    // 列表(index)对全体登录用户开放；其余接口按权限码控制，员工自助类权限已预授予普通用户角色
     Route::get('skills', 'Skill/index');
-    Route::get('skills/stats', 'Skill/stats');
-    Route::get('skills/categories', 'Skill/categories');
-    Route::post('skills', 'Skill/save');
-    Route::post('skills/parse-zip', 'Skill/parseZip');
+    Route::get('skills/stats', 'Skill/stats')->middleware(PermissionCheck::class, 'ai-skill:stats');
+    Route::get('skills/categories', 'Skill/categories')->middleware(PermissionCheck::class, 'ai-skill:categories');
+    Route::post('skills', 'Skill/save')->middleware(PermissionCheck::class, 'ai-skill:create');
+    Route::post('skills/parse-zip', 'Skill/parseZip')->middleware(PermissionCheck::class, 'ai-skill:parse-zip');
     Route::put('skills/:id', 'Skill/update');
     Route::delete('skills/:id', 'Skill/delete');
     Route::post('skills/:id/status', 'Skill/setStatus');
-    Route::post('skills/:id/like', 'Skill/like');
+    Route::post('skills/:id/like', 'Skill/like')->middleware(PermissionCheck::class, 'ai-skill:like');
 
     // 后台管理（接口级权限校验）
     Route::group('admin', function () {

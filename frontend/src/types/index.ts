@@ -71,7 +71,15 @@ export interface PermissionNode {
   code: string
   type: 'menu' | 'api'
   path: string
+  platform?: string
   children?: PermissionNode[]
+}
+
+/** 按平台分组的权限：平台页签 → 功能菜单 → 接口 */
+export interface PermissionPlatform {
+  platform: string
+  name: string
+  menus: PermissionNode[]
 }
 
 export interface UserItem {

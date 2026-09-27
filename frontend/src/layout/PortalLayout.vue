@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ElMessageBox } from 'element-plus'
-import { LayoutDashboard, LogOut, Waves, Home, Megaphone, Sparkles } from 'lucide-vue-next'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { KeyRound, LayoutDashboard, LogOut, Waves, Home, Megaphone, Sparkles } from 'lucide-vue-next'
 import { useUserStore } from '../stores/user'
+import ChangePasswordDialog from '../components/ChangePasswordDialog.vue'
 
 const store = useUserStore()
 const router = useRouter()
@@ -21,9 +22,13 @@ const goAnnouncements = () => router.push('/announcements')
 
 const goSkills = () => router.push('/skills')
 
+const changePwdRef = ref<InstanceType<typeof ChangePasswordDialog>>()
+
 const handleCommand = (command: string) => {
   if (command === 'admin') {
     router.push('/admin')
+  } else if (command === 'change-password') {
+    changePwdRef.value?.open()
   } else if (command === 'logout') {
     ElMessageBox.confirm('确定要退出登录吗？', '退出登录', { type: 'warning' })
       .then(async () => {
@@ -32,6 +37,13 @@ const handleCommand = (command: string) => {
       })
       .catch(() => undefined)
   }
+}
+
+/** 改密成功后清除 Token 并跳转登录页，避免旧凭证在有效期内继续可用 */
+const onPasswordChanged = async () => {
+  ElMessage.success('密码修改成功，请重新登录')
+  await store.logout()
+  router.push('/login')
 }
 </script>
 
@@ -89,6 +101,9 @@ const handleCommand = (command: string) => {
                 <el-dropdown-item v-if="store.isAdmin" command="admin">
                   <LayoutDashboard :size="15" class="mr-1.5 inline-block align-[-2px]" />后台管理
                 </el-dropdown-item>
+                <el-dropdown-item command="change-password">
+                  <KeyRound :size="15" class="mr-1.5 inline-block align-[-2px]" />修改密码
+                </el-dropdown-item>
                 <el-dropdown-item command="logout" divided>
                   <LogOut :size="15" class="mr-1.5 inline-block align-[-2px]" />退出登录
                 </el-dropdown-item>
@@ -102,5 +117,7 @@ const handleCommand = (command: string) => {
     <main class="pt-16">
       <router-view />
     </main>
+
+    <ChangePasswordDialog ref="changePwdRef" @success="onPasswordChanged" />
   </div>
 </template>
