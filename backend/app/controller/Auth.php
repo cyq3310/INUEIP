@@ -24,7 +24,8 @@ class Auth extends BaseController
             return resp_fail($e->getMessage(), $e->getCode() ?: 400);
         }
 
-        write_oplog('auth.login', "用户 {$username} 登录成功");
+        // 登录接口无登录态（request 上没有 userProfile），需显式传入账号
+        write_oplog('auth.login', "用户 {$username} 登录成功", $username);
         return resp_ok($result, '登录成功');
     }
 

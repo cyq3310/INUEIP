@@ -234,12 +234,22 @@ function gc_trash(int $retentionDays, bool $dryRun = false): array
 /**
  * 写入后台操作日志（失败不阻断主流程）
  */
-function write_oplog(string $action, string $detail = ''): void
+/**
+ * 记录操作日志
+ * @param string $action   动作标识
+ * @param string $detail   操作详情（超长自动截断）
+ * @param string $username 操作人账号；留空时取当前登录态的账号（登录接口等无登录态场景需显式传入）
+ */
+function write_oplog(string $action, string $detail = '', string $username = ''): void
 {
     try {
         $request = request();
+        if ($username === '') {
+            $username = (string) ($request->userProfile['username'] ?? '');
+        }
         \app\model\OperationLog::create([
             'user_id'    => (int) ($request->userId ?? 0),
+            'username'   => mb_substr($username, 0, 50),
             'action'     => $action,
             'detail'     => mb_substr($detail, 0, 2000),
             'ip'         => $request->ip(),

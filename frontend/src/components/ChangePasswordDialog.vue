@@ -80,7 +80,8 @@ defineExpose({ open })
 
 <template>
   <el-dialog v-model="visible" title="修改密码" width="420px" :close-on-click-modal="false">
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="88px">
+    <!-- label 宽度需容纳 5 个全角字符的「确认新密码」+ 冒号 + 右侧留白，过窄会导致末字换行 -->
+    <el-form ref="formRef" :model="form" :rules="rules" label-width="110px">
       <el-form-item label="当前密码" prop="oldPassword">
         <el-input v-model="form.oldPassword" type="password" show-password placeholder="请输入当前密码" />
       </el-form-item>

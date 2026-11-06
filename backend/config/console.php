@@ -7,5 +7,6 @@ return [
     'commands' => [
         'app\command\SkillGc',
         'app\command\SkillMigratePackages',
+        'app\command\OplogMaintain',
     ],
 ];

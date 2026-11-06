@@ -30,6 +30,9 @@ login.yaml
 portal.png
 .playwright-cli/
 
+# 根目录调试 / 验证截图
+/list-验证-*.png
+
 # 编辑器与系统文件
 .idea/
 .vscode/*

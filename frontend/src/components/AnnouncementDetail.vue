@@ -155,6 +155,37 @@ defineExpose({ open })
 </template>
 
 <style scoped>
+/* Tailwind preflight 重置了 ul/ol 的 list-style 与缩进，这里还原项目符号/编号 */
+.ann-detail-content :deep(ul) {
+  list-style: disc;
+  padding-left: 1.6em;
+  margin: 0.6em 0;
+}
+.ann-detail-content :deep(ol) {
+  list-style: decimal;
+  padding-left: 1.6em;
+  margin: 0.6em 0;
+}
+.ann-detail-content :deep(li) {
+  margin: 0.25em 0;
+}
+.ann-detail-content :deep(ul ul) {
+  list-style: circle;
+}
+.ann-detail-content :deep(ol ol),
+.ann-detail-content :deep(ul ol) {
+  list-style: lower-alpha;
+}
+/* 待办列表：wangEditor 输出 <div data-w-e-type="todo"><input type="checkbox" disabled> */
+.ann-detail-content :deep(div[data-w-e-type='todo']) {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+  margin: 0.35em 0;
+}
+.ann-detail-content :deep(input[type='checkbox']) {
+  margin-top: 0.45em;
+}
 .ann-detail-content :deep(img) {
   max-width: 100%;
   height: auto;
