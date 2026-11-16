@@ -27,11 +27,19 @@ backend/public/uploads/*
 generated-images/
 prototype/
 login.yaml
+editpage.yaml
 portal.png
+preview-tree-state.png
 .playwright-cli/
+.cdp-profile/
 
-# 根目录调试 / 验证截图
+# 本地演示 / 测试数据（不提交；数据库结构迁移脚本 database/ 仍提交）
+**/tools/seed-demo.php
+**/tools/seed-demo-state.json
+
+# 根目录调试 / 验证截图（src 内资源不受影响）
 /list-验证-*.png
+frontend/*.png
 
 # 编辑器与系统文件
 .idea/
