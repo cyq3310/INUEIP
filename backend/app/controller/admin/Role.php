@@ -10,6 +10,12 @@ use think\facade\Db;
 
 class Role extends BaseController
 {
+    /** 已移交 InuWiki 的权限 id：EIP 侧不再展示、分配、复制（判定统一在模型） */
+    private function retiredPermissionIds(): array
+    {
+        return Permission::retiredIds();
+    }
+
     /** 角色列表（含已分配权限ID集合） */
     public function index()
     {
@@ -18,8 +24,10 @@ class Role extends BaseController
         $paginator = RoleModel::with('permissions')->order('id', 'asc')
             ->paginate(['list_rows' => $size, 'page' => $page]);
 
-        $list = [];
+        $retiredIds = $this->retiredPermissionIds();
+        $list       = [];
         foreach ($paginator->items() as $role) {
+            $ids    = array_map('intval', array_column($role->permissions->toArray(), 'id'));
             $list[] = [
                 'id'             => (int) $role->id,
                 'name'           => $role->name,
@@ -27,14 +35,14 @@ class Role extends BaseController
                 'description'    => $role->description,
                 'status'         => (int) $role->status,
                 'created_at'     => $role->created_at,
-                'permission_ids' => array_map('intval', array_column($role->permissions->toArray(), 'id')),
+                'permission_ids' => array_values(array_diff($ids, $retiredIds)),
             ];
         }
 
         return resp_ok(['total' => $paginator->total(), 'list' => $list]);
     }
 
-    /** 新增角色 */
+    /** 新增角色（可选复制已有角色的已配置权限） */
     public function save()
     {
         $data = $this->request->post();
@@ -51,14 +59,45 @@ class Role extends BaseController
             return resp_fail('角色编码已存在');
         }
 
-        $role = RoleModel::create([
-            'name'        => $name,
-            'code'        => $code,
-            'description' => trim((string) ($data['description'] ?? '')),
-            'status'      => 1,
-        ]);
+        $copyFrom = (int) ($data['copy_from_role_id'] ?? 0);
+        $copyRole = null;
+        if ($copyFrom > 0) {
+            $copyRole = RoleModel::find($copyFrom);
+            if (!$copyRole) {
+                return resp_fail('复制来源角色不存在', 404);
+            }
+        }
 
-        write_oplog('role.create', "新增角色 {$name}(ID:{$role->id})");
+        $retiredIds = $copyFrom > 0 ? $this->retiredPermissionIds() : [];
+        $role       = null;
+        Db::transaction(function () use ($name, $code, $data, $copyFrom, $retiredIds, &$role) {
+            $role = RoleModel::create([
+                'name'        => $name,
+                'code'        => $code,
+                'description' => trim((string) ($data['description'] ?? '')),
+                'status'      => 1,
+            ]);
+
+            if ($copyFrom > 0) {
+                $sourceIds = Db::name('role_permission')->where('role_id', $copyFrom)->column('permission_id');
+                $validIds  = $sourceIds
+                    ? array_values(array_diff(Permission::whereIn('id', $sourceIds)->column('id'), $retiredIds))
+                    : [];
+                if ($validIds) {
+                    $rows = array_map(
+                        fn($pid) => ['role_id' => (int) $role->id, 'permission_id' => (int) $pid],
+                        $validIds
+                    );
+                    Db::name('role_permission')->insertAll($rows);
+                }
+            }
+        });
+
+        $detail = "新增角色 {$name}(ID:{$role->id})";
+        if ($copyRole) {
+            $detail .= "，复制自角色 {$copyRole->name}(ID:{$copyFrom})";
+        }
+        write_oplog('role.create', $detail);
         return resp_ok(['id' => (int) $role->id], '新增成功');
     }
 
@@ -122,10 +161,14 @@ class Role extends BaseController
         }
 
         $permissionIds = array_map('intval', (array) $this->request->post('permission_ids', []));
-        Db::transaction(function () use ($id, $permissionIds) {
+        $retiredIds    = $this->retiredPermissionIds();
+        Db::transaction(function () use ($id, $permissionIds, $retiredIds) {
             Db::name('role_permission')->where('role_id', $id)->delete();
             if ($permissionIds) {
-                $validIds = Permission::whereIn('id', $permissionIds)->column('id');
+                $validIds = array_values(array_diff(
+                    Permission::whereIn('id', $permissionIds)->column('id'),
+                    $retiredIds
+                ));
                 $rows     = array_map(fn($pid) => ['role_id' => $id, 'permission_id' => (int) $pid], $validIds);
                 if ($rows) {
                     Db::name('role_permission')->insertAll($rows);

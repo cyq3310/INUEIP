@@ -11,11 +11,12 @@ class Permission extends BaseController
     /**
      * 平台分组定义：与 permission.platform 取值对应，用于「分配权限」按平台页签展示
      * 顺序即页签顺序。归属判定见 .codebuddy/rules/权限平台分组规范.md：
-     * 功能开发在 EIP 代码库内 → eip；独立产品（如知识库 InuWiki）→ 独立键值与页签
+     * 仅保留在 EIP 代码库内开发、且仍由 EIP 管理授权的平台。
+     * 知识库权限已移交 InuWiki 自建权限系统，故不再注册 kb 页签；
+     * 权限行统一按 PermissionModel::retiredIds() 排除（兼容 platform 未校正的存量库）。
      */
     private const PLATFORMS = [
         'eip' => 'EIP 平台',
-        'kb'  => '知识库平台',
     ];
 
     /** 默认平台：未标记或取值未注册（含历史遗留值）时回落，避免权限在界面丢失 */
@@ -27,7 +28,14 @@ class Permission extends BaseController
      */
     public function index()
     {
-        $rows = PermissionModel::order('sort')->order('id')->select()->toArray();
+        $retiredIds = PermissionModel::retiredIds();
+        $rows       = PermissionModel::order('sort')->order('id')->select()->toArray();
+        if ($retiredIds) {
+            $rows = array_values(array_filter(
+                $rows,
+                static fn(array $row): bool => !in_array((int) $row['id'], $retiredIds, true)
+            ));
+        }
 
         $childrenMap = [];
         foreach ($rows as $row) {
@@ -45,10 +53,14 @@ class Permission extends BaseController
 
         $menus = $buildTree(0);
 
-        // 按平台归组：菜单的 platform 缺失时回落到默认平台
+        // 按平台归组：已移交 WIKI 的平台整组跳过（其子接口随菜单一起不展示），
+        // 其余菜单 platform 缺失时回落到默认平台
         $grouped = [];
         foreach ($menus as $menu) {
             $platform = (string) ($menu['platform'] ?? '');
+            if ($platform === PermissionModel::RETIRED_PLATFORM) {
+                continue;
+            }
             if ($platform === '' || !isset(self::PLATFORMS[$platform])) {
                 $platform = self::DEFAULT_PLATFORM;
             }

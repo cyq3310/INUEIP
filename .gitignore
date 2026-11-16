@@ -44,3 +44,30 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# ===== 测试数据 / 数据库内容（不提交；database/ 迁移脚本需提交） =====
+*.sqlite
+*.sqlite3
+*.db
+*.db3
+*.dump
+*.sql
+# 测试数据目录（Mock 数据 / 验证数据 / 种子数据等）
+**/tests/fixtures/
+**/test-data/
+**/*.test-data.*
+**/seed-data/
+
+# ===== AI 工具本地产物（不提交；本地 AI 会话/生成数据，非项目代码） =====
+.codebuddy/
+.cursor/
+.cline/
+.claude/
+.aider/
+.github/copilot*
+ai-session*/
+**/ai-chat*
+chat-export*/
+
+# ===== 版本更新日志（需提交，勿忽略） =====
+# CHANGELOG.md / docs/更新日志.md 正常提交，不在忽略范围

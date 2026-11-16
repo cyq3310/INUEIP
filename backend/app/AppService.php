@@ -19,6 +19,13 @@ class AppService extends Service
     {
         // myconfig 为唯一配置源：用 myconfig.database 覆盖框架数据库配置（空值回落 .env / 默认值）
         $this->syncDatabaseConfig();
+
+        // 操作日志来源 IP：反向代理不在本机时，可在 myconfig.deploy.trusted_proxies
+        // 列出可信代理（IP 或 CIDR）；未配置则默认只信任本机回环。
+        $trustedProxies = config('myconfig.deploy.trusted_proxies', []);
+        if (is_array($trustedProxies) && $trustedProxies !== []) {
+            Request::setTrustedProxies($trustedProxies);
+        }
     }
 
     /**

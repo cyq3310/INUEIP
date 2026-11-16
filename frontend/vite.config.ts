@@ -19,6 +19,8 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: proxyTarget,
           changeOrigin: true,
+          // 把真实客户端 IP 以 X-Forwarded-For 传给后端，避免开发态操作日志全记成 127.0.0.1
+          xfwd: true,
         },
         // 门户背景图等上传资源由后端托管
         '/uploads': {
