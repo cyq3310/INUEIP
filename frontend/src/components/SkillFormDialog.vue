@@ -28,8 +28,11 @@ const visible = computed({
 const isEdit = computed(() => !!props.skill)
 const dialogTitle = computed(() => (isEdit.value ? `编辑 Skill · ${props.skill?.name ?? ''}` : '上传 Skill'))
 
-/** form = 在线表单创建，zip = 压缩包上传 */
-const mode = ref<'form' | 'zip'>('form')
+/** form = 在线表单创建，zip = 压缩包上传；新建默认从压缩包上传起步 */
+const mode = ref<'form' | 'zip'>('zip')
+
+/** 新建态下，表单页签在上传并回填前锁定，避免绕过回填导致 source/package_path 丢失 */
+const formTabLocked = computed(() => !isEdit.value && mode.value === 'zip')
 
 const createEmpty = () => ({
   name: '',
@@ -60,7 +63,8 @@ watch(
   () => props.modelValue,
   (open) => {
     if (!open) return
-    mode.value = 'form'
+    // 新建从压缩包上传起步；编辑态直接进表单（编辑态不提供换包页签）
+    mode.value = isEdit.value ? 'form' : 'zip'
     zipResult.value = null
     const skill = props.skill
     Object.assign(
@@ -104,7 +108,7 @@ const handleZip = (file: UploadFile) => {
     .then((res) => {
       zipResult.value = res.data
       if (res.data.valid) {
-        ElMessage.success('压缩包校验通过，请确认后回填表单')
+        ElMessage.success('压缩包校验通过，请点击「编辑表单」继续')
       } else {
         ElMessage.error('压缩包校验未通过，请按提示修正后重新上传')
       }
@@ -113,7 +117,7 @@ const handleZip = (file: UploadFile) => {
     .finally(() => (parsing.value = false))
 }
 
-/** 校验通过后把解析结果回填到表单，再切回表单模式继续编辑 */
+/** 唯一进入表单的入口：回填解析结果，写入 source/package_path 后解锁表单页签 */
 const applyDraft = () => {
   const draft = zipResult.value?.draft
   if (!draft) return
@@ -123,15 +127,17 @@ const applyDraft = () => {
   form.params = draft.params.map((p) => ({ ...p }))
   form.icon = draft.icon
   form.source = 'zip'
-  // 取服务端落盘后的路径（真实接口）；mock 下回落到文件名
+  // 取服务端落盘后的暂存路径（真实接口）；mock 下回落到文件名
   form.package_path = zipResult.value?.package_path ?? zipResult.value?.file_name ?? null
   mode.value = 'form'
-  ElMessage.success('已回填表单，请确认分类与参数后提交')
+  ElMessage.success('请完善表单信息后保存')
 }
 
 // ---------- 提交 ----------
 
 const submit = async (status: SkillItem['status']) => {
+  // 压缩包页签不提供保存入口，兜底防止绕过「编辑表单」造成 source/package_path 丢失
+  if (mode.value === 'zip') return
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
 
@@ -163,17 +169,9 @@ const submit = async (status: SkillItem['status']) => {
 
 <template>
   <el-dialog v-model="visible" :title="dialogTitle" width="680px" destroy-on-close :close-on-click-modal="false">
-    <!-- 模式切换：编辑态不再支持换包，仅展示表单模式 -->
+    <!-- 流程：① 压缩包上传 → ② 表单创建。编辑态不显示页签，直接展示表单 -->
     <div v-if="!isEdit" class="mb-4 flex items-center justify-between">
       <div class="inline-flex rounded-xl bg-[#F2F5FC] p-1">
-        <button
-          type="button"
-          class="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg px-4 text-[13px] transition-all duration-200"
-          :class="mode === 'form' ? 'bg-white font-medium text-primary-deep shadow-sm' : 'text-ink-sub'"
-          @click="mode = 'form'"
-        >
-          <Plus :size="14" />表单创建
-        </button>
         <button
           type="button"
           class="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg px-4 text-[13px] transition-all duration-200"
@@ -181,6 +179,19 @@ const submit = async (status: SkillItem['status']) => {
           @click="mode = 'zip'"
         >
           <Package :size="14" />压缩包上传
+        </button>
+        <button
+          type="button"
+          :disabled="formTabLocked"
+          :title="formTabLocked ? '请先上传压缩包并点击「编辑表单」' : ''"
+          class="flex h-8 items-center gap-1.5 rounded-lg px-4 text-[13px] transition-all duration-200"
+          :class="[
+            mode === 'form' ? 'bg-white font-medium text-primary-deep shadow-sm' : 'text-ink-sub',
+            formTabLocked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
+          ]"
+          @click="mode = 'form'"
+        >
+          <Plus :size="14" />表单创建
         </button>
       </div>
       <span v-if="mode === 'zip'" class="text-xs text-ink-mute">支持 .zip，需含 SKILL.md，单包 ≤ 50MB</span>
@@ -225,7 +236,7 @@ const submit = async (status: SkillItem['status']) => {
         </div>
 
         <el-button v-if="zipResult.valid" type="primary" class="mt-3 w-full" @click="applyDraft">
-          回填表单并继续编辑
+          编辑表单
         </el-button>
       </div>
     </div>
@@ -308,8 +319,10 @@ const submit = async (status: SkillItem['status']) => {
     <template #footer>
       <div class="flex justify-end gap-2">
         <el-button @click="visible = false">取消</el-button>
-        <el-button :loading="saving" @click="submit(0)">保存为草稿</el-button>
-        <el-button type="primary" :loading="saving" @click="submit(1)">保存并上架</el-button>
+        <template v-if="mode === 'form'">
+          <el-button :loading="saving" @click="submit(0)">保存为草稿</el-button>
+          <el-button type="primary" :loading="saving" @click="submit(1)">保存并上架</el-button>
+        </template>
       </div>
     </template>
   </el-dialog>
