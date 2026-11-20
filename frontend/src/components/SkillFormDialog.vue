@@ -162,7 +162,7 @@ const submit = async (status: SkillItem['status']) => {
 </script>
 
 <template>
-  <el-dialog v-model="visible" :title="dialogTitle" width="680px" destroy-on-close>
+  <el-dialog v-model="visible" :title="dialogTitle" width="680px" destroy-on-close :close-on-click-modal="false">
     <!-- 模式切换：编辑态不再支持换包，仅展示表单模式 -->
     <div v-if="!isEdit" class="mb-4 flex items-center justify-between">
       <div class="inline-flex rounded-xl bg-[#F2F5FC] p-1">

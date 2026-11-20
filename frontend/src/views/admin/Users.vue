@@ -167,7 +167,7 @@ onMounted(() => {
       />
     </div>
 
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="480px" destroy-on-close>
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="480px" destroy-on-close :close-on-click-modal="false">
       <el-form label-width="90px">
         <el-form-item label="账号" required>
           <el-input v-model="form.username" :disabled="!!editingId" placeholder="3-20位字母、数字或下划线" />

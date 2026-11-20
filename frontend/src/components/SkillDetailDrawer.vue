@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Copy } from 'lucide-vue-next'
+import { Copy, Download } from 'lucide-vue-next'
 import LucideIcon from './LucideIcon.vue'
 import SkillLikeButton from './SkillLikeButton.vue'
 import { useSkillLike } from '../composables/useSkillLike'
@@ -30,11 +30,14 @@ const statusMeta = computed(() =>
   props.skill ? SKILL_STATUS_META[props.skill.status] : SKILL_STATUS_META[0],
 )
 
-// 资源包存的是相对路径（如 skills/101/package.zip），展示时拼上 skill.local_path 前缀
+// 资源包存的是相对路径（如 101/package.zip），展示时拼上 skill.local_path 前缀；
+// 已是绝对/完整 URL（如 mock 数据）时直接返回，避免拼出双前缀。
 const packageUrl = computed(() => {
-  if (!props.skill?.package_path) return ''
+  const path = props.skill?.package_path
+  if (!path) return ''
+  if (/^https?:\/\//i.test(path) || path.startsWith('/')) return path
   const base = getRuntimeConfig().skill.local_path.replace(/\/+$/, '')
-  return base + '/' + props.skill.package_path
+  return base + '/' + path.replace(/^\/+/, '')
 })
 
 const copyContent = () => {
@@ -121,16 +124,19 @@ const copyContent = () => {
         <p v-else class="rounded-xl bg-[#F7F9FE] px-4 py-3 text-[13px] text-ink-mute">该 Skill 无需额外入参，直接使用即可</p>
       </section>
 
-      <section v-if="skill.package_path">
+      <section v-if="skill.source === 'zip' || skill.package_path">
         <h4 class="mb-2 text-[13px] font-medium text-ink-sub">资源包</h4>
-        <a
-          :href="packageUrl"
-          target="_blank"
-          rel="noopener"
-          class="block break-all rounded-xl bg-[#F7F9FE] px-4 py-3 font-mono text-[12px] text-primary-deep hover:underline"
-        >
-          {{ packageUrl }}
-        </a>
+        <div v-if="packageUrl" class="flex flex-wrap items-center gap-3 rounded-xl bg-[#F7F9FE] px-4 py-3">
+          <a
+            :href="packageUrl"
+            download
+            class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
+          >
+            <Download :size="14" />下载资源包
+          </a>
+          <span class="break-all font-mono text-[12px] text-ink-mute">{{ packageUrl }}</span>
+        </div>
+        <p v-else class="rounded-xl bg-[#F7F9FE] px-4 py-3 text-[13px] text-ink-mute">该 Skill 未上传资源包，无法下载</p>
       </section>
     </div>
 

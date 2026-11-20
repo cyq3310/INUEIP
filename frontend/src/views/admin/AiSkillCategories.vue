@@ -166,7 +166,7 @@ const dimensionHint = computed(() =>
       </template>
     </el-table>
 
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="480px" destroy-on-close>
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="480px" destroy-on-close :close-on-click-modal="false">
       <el-form label-width="80px">
         <el-form-item label="名称" required>
           <el-input v-model="form.name" placeholder="如：研发 / 文档处理" maxlength="12" show-word-limit />

@@ -154,7 +154,7 @@ onMounted(fetchList)
       <el-pagination v-model:current-page="query.page" :page-size="query.size" :total="total" layout="total, prev, pager, next" @change="fetchList" />
     </div>
 
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="520px" destroy-on-close>
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="520px" destroy-on-close :close-on-click-modal="false">
       <el-form label-width="90px">
         <el-form-item label="名称" required>
           <el-input v-model="form.name" placeholder="如：内部Wiki" />

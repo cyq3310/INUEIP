@@ -9,6 +9,7 @@ import StatCard from '../../components/StatCard.vue'
 import AppLinkCard from '../../components/AppLinkCard.vue'
 import AnnouncementDetail from '../../components/AnnouncementDetail.vue'
 import SkillCard from '../../components/SkillCard.vue'
+import SkillDetailDrawer from '../../components/SkillDetailDrawer.vue'
 import { useSkillCategories } from '../../composables/useSkillCategories'
 import type { AnnouncementItem, AppLinkItem, PortalThemeConfig, SkillItem, SummaryStat } from '../../types'
 
@@ -31,6 +32,14 @@ const openDetail = (item: AnnouncementItem) => detailRef.value?.open(item)
 /** AI Skill 推荐：取最新提交的 4 个已上架 Skill，无数据时整块隐藏 */
 const recommendedSkills = ref<SkillItem[]>([])
 const goSkillPlaza = () => router.push('/skills')
+
+/** 推荐卡片点击就地打开 Skill 详情抽屉，与「查看全部」的跳转区分开 */
+const skillDetailVisible = ref(false)
+const currentSkill = ref<SkillItem | null>(null)
+const openSkillDetail = (skill: SkillItem) => {
+  currentSkill.value = skill
+  skillDetailVisible.value = true
+}
 
 const nickname = computed(() => store.profile?.nickname || store.profile?.username || '同事')
 
@@ -195,7 +204,7 @@ const visibleAnnouncements = computed(() => announcements.value.slice(0, MAX_VIS
             :function-name="functionName(skill.function_category_id)"
             :type-name="typeName(skill.type_category_id)"
             compact
-            @detail="goSkillPlaza"
+            @detail="openSkillDetail"
           />
         </div>
       </div>
@@ -213,5 +222,13 @@ const visibleAnnouncements = computed(() => announcements.value.slice(0, MAX_VIS
 
     <!-- 公告详情弹窗 -->
     <AnnouncementDetail ref="detailRef" />
+
+    <!-- Skill 详情抽屉：首页推荐卡片点击就地打开，不跳转广场 -->
+    <SkillDetailDrawer
+      v-model="skillDetailVisible"
+      :skill="currentSkill"
+      :function-name="functionName(currentSkill?.function_category_id ?? 0)"
+      :type-name="typeName(currentSkill?.type_category_id ?? 0)"
+    />
   </div>
 </template>

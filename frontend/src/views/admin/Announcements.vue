@@ -222,7 +222,7 @@ onMounted(fetchList)
       <el-pagination v-model:current-page="query.page" :page-size="query.size" :total="total" layout="total, prev, pager, next" @change="fetchList" />
     </div>
 
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" class="ann-edit-dialog" width="min(1500px, 92vw)" destroy-on-close top="4vh">
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" class="ann-edit-dialog" width="min(1500px, 92vw)" destroy-on-close top="4vh" :close-on-click-modal="false">
       <el-form label-width="90px">
         <el-form-item label="标题" required>
           <el-input v-model="form.title" maxlength="32" show-word-limit placeholder="公告标题（最多32个字）" />
